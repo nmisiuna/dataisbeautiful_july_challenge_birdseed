@@ -13,7 +13,7 @@ data = pd.read_csv('./birdseed.csv', sep = ',', header = 0, index_col = 0)
 data.columns.rename('Bird Type', inplace = True)
 data.index.rename('Seed Type', inplace = True)
 data = data.transpose()
-
+            
 #Correspondence Analysis using the prince library
 ca = prince.CA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto')
 ca = ca.fit(data)
