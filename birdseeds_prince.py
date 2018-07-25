@@ -14,12 +14,11 @@ data.columns.rename('Bird Type', inplace = True)
 data.index.rename('Seed Type', inplace = True)
 data = data.transpose()
 
+#Correspondence Analysis using the prince library
 ca = prince.CA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto')
-#ca = prince.MCA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto')
 ca = ca.fit(data)
 
-#print (ca.column_principal_coordinates().head())
-
+#Plot the inertia to justify the use of this method
 plt.figure()
 plt.plot(np.cumsum(ca.explained_inertia_), label = 'Ind. Inertia')
 plt.plot(ca.explained_inertia_, label = 'Cum. Sum. of Inertia')
@@ -37,7 +36,6 @@ kmeans = kmeans.fit(ca.column_principal_coordinates()[[0, 1]])
 labels = kmeans.predict(ca.column_principal_coordinates()[[0, 1]])
 centroids = kmeans.cluster_centers_
 
-#ca.plot_principal_coordinates()
 ax = ca.plot_principal_coordinates(show_col_labels = False, show_row_labels = False)
 ax.get_figure().set_size_inches(9, 9, forward = True)
 #I need to construct my own set of text labels and use the adjustText library
@@ -52,7 +50,8 @@ full_texts = zip(col_labels()[0], col_labels()[1], ca.col_names_)
 for x, y, name in full_texts:
     texts.append(plt.text(x, y, name, fontsize = 12))
 adjust_text(texts)
-            
+
+#Plot the centers of the k-means centroids and annotate them            
 plt.scatter(centroids[:,0], centroids[:,1])
 for i in range(0, n_clusters):
     plt.annotate('%s' % i, centroids[i],  bbox=dict(boxstyle='circle', fc = 'none', ec = 'black', alpha = 0.8), size = 15, color = 'black')
@@ -62,6 +61,7 @@ plt.savefig('CA Principle Components.png', format = 'png', bbox_inches = 'tight'
 plt.show(False)
 
 #Now I know which seeds go in which cluster
+#Let's make an automated heat map of seed/bird clusters
 fig = plt.figure()
 if (data.columns.name == 'Bird Type'):
     fig.set_size_inches(14, 6, forward = True)
@@ -74,12 +74,12 @@ unique, counts = np.unique(labels, return_counts = True)
 labeldict = dict(zip(counts, unique))
 
 #Do a sort on counts and apply the same sorting to unique
-#for i in range(0, n_clusters):
+#I'll keysort counts and heat map plot each bird or seed in that cluster
 
 iteration = 0
 for cluster in sorted(labeldict, reverse = True):
     i = labeldict[cluster]
-    z = []
+    z = [] #The cluster's data
     for j in range(0, len(data.keys())):
         if (labels[j] == i):
             z.append(j)
@@ -90,6 +90,7 @@ for cluster in sorted(labeldict, reverse = True):
     if(iteration == 0):
         plt.yticks(range(len(data.index)), data.index, rotation = 30)
     else:
+        #I want a shared y-axis
         plt.yticks([], [])
     iteration += 1
 
@@ -97,7 +98,7 @@ for cluster in sorted(labeldict, reverse = True):
 ax = fig.add_subplot(1, n_clusters + 1, n_clusters + 1)
 m = np.zeros((1, 4))
 for i in range(4):
-    m[0, i] = 100.0 - (i * 4) / 100.0
+    m[0, i] = 100.0 - (i * 4) / 100.0 #No idea why it's (i * 4) / 100
 plt.imshow(np.transpose(m), aspect = 2)
 ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
 ax.yaxis.tick_right()
@@ -109,4 +110,3 @@ plt.title('Legend', fontsize = 12)
 plt.subplots_adjust(left = 0.2, wspace = 0.05)
 plt.savefig('%s Clusters Matrix.%s' % (data.columns.name, pic_type), format = 'png', bbox_inches = 'tight')
 plt.show(False)    
-
