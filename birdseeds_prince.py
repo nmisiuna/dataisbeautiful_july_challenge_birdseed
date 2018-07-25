@@ -1,25 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
 import prince
+from sklearn.cluster import KMeans
+from adjustText import adjust_text
 
-data = {'Cardinals': [3, 3, 3, 1, 0, 0, 0, 3, 1],
-        'Chickadees': [3, 2, 2, 0, 0, 0, 2, 2, 0],
-        'Doves': [2, 1, 2, 3, 3, 1, 0, 2, 2],
-        'Goldfinches': [3, 2, 3, 1, 0, 3, 0, 0, 0],
-        'Grosbeaks': [2, 2, 3, 0, 0, 0, 0, 1, 0],
-        'House Finches': [3, 2, 3, 2, 0, 3, 0, 1, 0],
-        'Jays': [3, 3, 3, 0, 1, 0, 2, 1, 2],
-        'Juncos': [1, 1, 1, 1, 0, 1, 0, 0, 3],
-        'Nuthatches': [3, 2, 2, 0, 0, 0, 1, 1, 0],
-        'Purple Finches': [3, 2, 3, 1, 0, 3, 0, 0, 0],
-        'Siskins': [1, 1, 3, 0, 0, 3, 0, 0, 1],
-        'Sparrows': [3, 3, 3, 3, 2, 0, 0, 1, 2],
-        'Titmice': [3, 2, 2, 0, 0, 1, 2, 1, 0],
-        'Towhees': [3, 3, 3, 1, 0, 0, 1, 1, 1, ],
-        'Woodpeckers': [3, 3, 2, 0, 0, 0, 1, 1, 1,]}
-index = ('Black Oil Sunflower', 'Striped Sunflower', 'Hulled Sunflower', 'Millet White/Red', 'Milo Seed', 'Nyjer Seed (Thistle)', 'Shelled Peanuts', 'Safflower Seed', 'Corn Products')
-data = pd.DataFrame(data = data, index = index)
+pic_type = 'png'
+
+data = pd.read_csv('./birdseed.csv', sep = ',', header = 0, index_col = 0)
 
 data.columns.rename('Bird Type', inplace = True)
 data.index.rename('Seed Type', inplace = True)
@@ -29,12 +18,95 @@ ca = prince.CA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto
 #ca = prince.MCA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto')
 ca = ca.fit(data)
 
-print (ca.column_principal_coordinates().head())
-
-ca.plot_principal_coordinates()#show_column_labels = True, show_row_labels = True)
-plt.show(False)
+#print (ca.column_principal_coordinates().head())
 
 plt.figure()
-plt.plot(np.cumsum(ca.explained_inertia_))
-plt.plot(ca.explained_inertia_)
+plt.plot(np.cumsum(ca.explained_inertia_), label = 'Ind. Inertia')
+plt.plot(ca.explained_inertia_, label = 'Cum. Sum. of Inertia')
+plt.legend(loc = 2, fancybox = True, framealpha = 1)
+plt.title('Correspondence Analysis Inertia')
+plt.xlabel('Principal Components')
+plt.ylabel('Inertia')
+plt.savefig('CA Inertia.png', format = 'png', bbox_inches = 'tight')
 plt.show(False)
+
+#Let's try to apply k-means algorithm to the CA data to auto-identify clusters
+n_clusters = 3
+kmeans = KMeans(n_clusters = n_clusters)
+kmeans = kmeans.fit(ca.column_principal_coordinates()[[0, 1]])
+labels = kmeans.predict(ca.column_principal_coordinates()[[0, 1]])
+centroids = kmeans.cluster_centers_
+
+#ca.plot_principal_coordinates()
+ax = ca.plot_principal_coordinates(show_col_labels = False, show_row_labels = False)
+ax.get_figure().set_size_inches(9, 9, forward = True)
+#I need to construct my own set of text labels and use the adjustText library
+#to fix the overlapping text issue
+row_labels = ca.row_principal_coordinates
+full_texts = zip(row_labels()[0], row_labels()[1], ca.row_names_)
+texts = []
+for x, y, name in full_texts:
+    texts.append(plt.text(x, y, name, fontsize = 12))
+col_labels = ca.column_principal_coordinates
+full_texts = zip(col_labels()[0], col_labels()[1], ca.col_names_)
+for x, y, name in full_texts:
+    texts.append(plt.text(x, y, name, fontsize = 12))
+adjust_text(texts)
+            
+plt.scatter(centroids[:,0], centroids[:,1])
+for i in range(0, n_clusters):
+    plt.annotate('%s' % i, centroids[i],  bbox=dict(boxstyle='circle', fc = 'none', ec = 'black', alpha = 0.8), size = 15, color = 'black')
+plt.legend(loc = 1, fancybox = True, framealpha = 1)
+
+plt.savefig('CA Principle Components.png', format = 'png', bbox_inches = 'tight')
+plt.show(False)
+
+#Now I know which seeds go in which cluster
+fig = plt.figure()
+if (data.columns.name == 'Bird Type'):
+    fig.set_size_inches(14, 6, forward = True)
+else:
+    fig.set_size_inches(9, 6, forward = True)
+#Now make the n_cluster number of subplots
+#I want to order them in decreasing size (number of elements per cluster)
+#Find the biggest cluster first
+unique, counts = np.unique(labels, return_counts = True)
+labeldict = dict(zip(counts, unique))
+
+#Do a sort on counts and apply the same sorting to unique
+#for i in range(0, n_clusters):
+
+iteration = 0
+for cluster in sorted(labeldict, reverse = True):
+    i = labeldict[cluster]
+    z = []
+    for j in range(0, len(data.keys())):
+        if (labels[j] == i):
+            z.append(j)
+    ax = fig.add_subplot(1, n_clusters + 1, iteration + 1)
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
+    cax = ax.matshow(data[data.columns[z[:]]], aspect = "auto")
+    plt.xticks(range(len(z)), list(data[data.columns[z[:]]]), rotation = 30, ha = 'left')
+    if(iteration == 0):
+        plt.yticks(range(len(data.index)), data.index, rotation = 30)
+    else:
+        plt.yticks([], [])
+    iteration += 1
+
+#Let's make our own legend as a subplot
+ax = fig.add_subplot(1, n_clusters + 1, n_clusters + 1)
+m = np.zeros((1, 4))
+for i in range(4):
+    m[0, i] = 100.0 - (i * 4) / 100.0
+plt.imshow(np.transpose(m), aspect = 2)
+ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
+ax.yaxis.tick_right()
+plt.yticks(range(4), range(3, -1, -1))
+plt.tick_params(axis = 'x', which = 'both', bottom = False, top = False, labelbottom = False)
+plt.title('Legend', fontsize = 12)
+
+#Adjust the subplot separations
+plt.subplots_adjust(left = 0.2, wspace = 0.05)
+plt.savefig('%s Clusters Matrix.%s' % (data.columns.name, pic_type), format = 'png', bbox_inches = 'tight')
+plt.show(False)    
+
