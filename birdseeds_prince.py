@@ -14,7 +14,7 @@ data = pd.read_csv('./birdseed.csv', sep = ',', header = 0, index_col = 0)
 data.columns.rename('Bird Type', inplace = True)
 data.index.rename('Seed Type', inplace = True)
 data = data.transpose()
-            
+
 #Correspondence Analysis using the prince library
 ca = prince.CA(n_components = len(data), n_iter = 3, copy = True, engine = 'auto')
 ca = ca.fit(data)
@@ -64,10 +64,15 @@ plt.show(False)
 #Now I know which seeds go in which cluster
 #Let's make an automated heat map of seed/bird clusters
 fig = plt.figure()
-if (data.columns.name == 'Bird Type'):
-    fig.set_size_inches(14, 6, forward = True)
-else:
-    fig.set_size_inches(9, 6, forward = True)
+
+#fig.set_size_inches(len(list(data)), len(data), forward = True)
+fig.set_size_inches(6, len(data) / len(list(data)) * 6.0, forward = True)
+
+#if (data.columns.name == 'Bird Type'):
+#    fig.set_size_inches(14, 6, forward = True)
+#else:
+#    fig.set_size_inches(9, 6, forward = True)
+
 #Now make the n_cluster number of subplots
 #I want to order them in decreasing size (number of elements per cluster)
 #Find the biggest cluster first
