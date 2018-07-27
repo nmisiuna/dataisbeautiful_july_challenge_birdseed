@@ -5,6 +5,7 @@ import numpy as np
 import prince
 from sklearn.cluster import KMeans
 from adjustText import adjust_text
+import matplotlib.gridspec as gridspec
 
 pic_type = 'png'
 
@@ -76,16 +77,24 @@ labeldict = dict(zip(counts, unique))
 #Do a sort on counts and apply the same sorting to unique
 #I'll keysort counts and heat map plot each bird or seed in that cluster
 
+width_ratios = sorted(counts, reverse = True)
+width_ratios.append(1)
+grid = gridspec.GridSpec(1, 4, width_ratios = width_ratios)
+#grid = gridspec.GridSpec(1, 4, width_ratios = [5, 3, 1, 1])
+
 iteration = 0
+total = 0
 for cluster in sorted(labeldict, reverse = True):
     i = labeldict[cluster]
     z = [] #The cluster's data
     for j in range(0, len(data.keys())):
         if (labels[j] == i):
             z.append(j)
-    ax = fig.add_subplot(1, n_clusters + 1, iteration + 1)
+    #ax = fig.add_subplot(1, n_clusters + 1, iteration + 1)
+    ax = fig.add_subplot(grid[iteration])#[:, iteration])
+    total += cluster
     ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
-    cax = ax.matshow(data[data.columns[z[:]]], aspect = "auto")
+    cax = ax.matshow(data[data.columns[z[:]]], aspect = "auto")#aspect = "equal")
     plt.xticks(range(len(z)), list(data[data.columns[z[:]]]), rotation = 30, ha = 'left')
     if(iteration == 0):
         plt.yticks(range(len(data.index)), data.index, rotation = 30)
@@ -94,12 +103,20 @@ for cluster in sorted(labeldict, reverse = True):
         plt.yticks([], [])
     iteration += 1
 
+    #Add white lines separating each value via gridlines
+    #The gridlines go off the minor axes
+    #Also, don't overwrite the boundary of the plot with white lines
+    ax.set_yticks(np.arange(0.5, len(data.index) - 1, 1), minor = True)
+    ax.set_xticks(np.arange(0.5, len(z) - 1, 1), minor = True)
+    ax.grid(which = 'minor', axis = 'both', color = 'w', linestyle = '-', linewidth = 2)
+
 #Let's make our own legend as a subplot
-ax = fig.add_subplot(1, n_clusters + 1, n_clusters + 1)
+#ax = fig.add_subplot(1, n_clusters + 1, n_clusters + 1)
+ax = fig.add_subplot(grid[n_clusters])#[:, 3])
 m = np.zeros((1, 4))
 for i in range(4):
     m[0, i] = 100.0 - (i * 4) / 100.0 #No idea why it's (i * 4) / 100
-plt.imshow(np.transpose(m), aspect = 2)
+plt.imshow(np.transpose(m), aspect = "auto")#4)
 ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
 ax.yaxis.tick_right()
 plt.yticks(range(4), range(3, -1, -1))
@@ -107,6 +124,6 @@ plt.tick_params(axis = 'x', which = 'both', bottom = False, top = False, labelbo
 plt.title('Legend', fontsize = 12)
 
 #Adjust the subplot separations
-plt.subplots_adjust(left = 0.2, wspace = 0.05)
+#plt.subplots_adjust(left = 0.2, wspace = 0.0)
 plt.savefig('%s Clusters Matrix.%s' % (data.columns.name, pic_type), format = 'png', bbox_inches = 'tight')
 plt.show(False)    
