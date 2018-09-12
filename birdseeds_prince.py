@@ -131,21 +131,26 @@ plt.show(False)
 #This is therefore not the generalized implementation
 
 #Get the cluster data for the transposed data
-unique, counts = np.unique(labels_T, return_counts = True)
-labeldict_T = dict(zip(counts, unique))
+unique_T, counts_T = np.unique(labels_T, return_counts = True)
+labeldict_T = dict(zip(counts_T, unique_T))
+
+#I need to get appropriate height ratios based on the sorting of the columns
+#This keeps clusters together in both row/columns rather than independent
+z = dict(zip(unique_T, counts_T)) #This works but it feels sloppy
+height_ratios = []
+for i in range(0, n_clusters):
+    height_ratios.append(z[labeldict[sorted(labeldict, reverse = True)[i]]])
 
 width_ratios = sorted(counts, reverse = True)
 width_ratios.append(1)
-grid = gridspec.GridSpec(n_clusters, n_clusters + 1, width_ratios = width_ratios)
+
+grid = gridspec.GridSpec(n_clusters, n_clusters + 1, width_ratios = width_ratios, height_ratios = height_ratios)
 
 fig = plt.figure()
 fig.set_size_inches(6, len(data) / len(list(data)) * 6.0, forward = True)
 
 #Set up my set of axes
-ax = []
-for i in range(0, n_clusters):
-    for j in range(0, n_clusters):
-        ax.append(fig.add_subplot(n_clusters, n_clusters, i * n_clusters + j + 1))
+ax = [[] for i in range(0, n_clusters * n_clusters)]
 
 iteration = 0
 iteration_total = 0
@@ -157,21 +162,16 @@ for cluster in sorted(labeldict, reverse = True):
             z.append(j)
             
     iteration_T = 0
-    for cluster_T in sorted(labeldict_T, reverse = True):
-        i_T = labeldict_T[cluster_T]
+    for cluster_T in sorted(labeldict, reverse = True):
+        i_T = labeldict[cluster_T]
         z_T = [] #The cluster's transposed dimension data
         for j_T in range(0, len(data.index)):
             if (labels_T[j_T] == i_T):
                 z_T.append(j_T)
-                
-        print(i, i_T, iteration)
-        print(z_T)
-        #This is to make column-wise rather than row-wise subplots
-        iteration_total = iteration_T * n_clusters + iteration
-        
-        ax[iteration_total] = fig.add_subplot(n_clusters, n_clusters, iteration_total + 1)
+
+        ax[iteration_total] = fig.add_subplot(grid[iteration_T, iteration])
         ax[iteration_total].tick_params(axis = 'both', which = 'major', labelsize = 12)
-        cax = ax[iteration_total].matshow(data.loc[data.index[z_T[:]], data.columns[z[:]]], aspect = "auto")#aspect = "equal")
+        cax = ax[iteration_total].matshow(data.iloc[z_T[:], z[:]], aspect = "auto", vmin = data.min().min(), vmax = data.max().max())#aspect = "equal")
         if(iteration_T == 0):
             plt.xticks(range(len(z)), list(data[data.columns[z[:]]]), rotation = 30, ha = 'left')
         else:
@@ -181,16 +181,32 @@ for cluster in sorted(labeldict, reverse = True):
         else:
             #I want a shared y-axis
             plt.yticks([], [])
-        iteration_T += 1
 
-    iteration += 1
-    
         #Add white lines separating each value via gridlines
         #The gridlines go off the minor axes
         #Also, don't overwrite the boundary of the plot with white lines
-        #ax.set_yticks(np.arange(0.5, len(data.index) - 1, 1), minor = True)
-        #ax.set_xticks(np.arange(0.5, len(z) - 1, 1), minor = True)
-        #ax.grid(which = 'minor', axis = 'both', color = 'w', linestyle = '-', linewidth = 2)
+        ax[iteration_total].set_yticks(np.arange(0.5, len(data.index[z_T[:]]) - 1, 1), minor = True)
+        ax[iteration_total].set_xticks(np.arange(0.5, len(z[:]) - 1, 1), minor = True)
+        ax[iteration_total].grid(which = 'minor', axis = 'both', color = 'w', linestyle = '-', linewidth = 2)
+        
+        iteration_T += 1
+        iteration_total += 1
+    iteration += 1
+    
+        
+
+#Let's make our own legend as a subplot
+ax = fig.add_subplot(grid[:, n_clusters])
+m = np.zeros((1, 4))
+for i in range(4):
+    m[0, i] = 100.0 - (i * 4) / 100.0 #No idea why it's (i * 4) / 100
+plt.imshow(np.transpose(m), aspect = "auto")
+ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
+ax.yaxis.tick_right()
+plt.yticks(range(4), range(3, -1, -1))
+plt.tick_params(axis = 'x', which = 'both', bottom = False, top = False, labelbottom = False)
+plt.title('Legend', fontsize = 12)
+
 
 plt.savefig('Segmented Clusters Matrix.%s' % pic_type, format = 'png', bbox_inches = 'tight')
 plt.show(False)  
