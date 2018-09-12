@@ -79,8 +79,7 @@ labeldict = dict(zip(counts, unique))
 
 width_ratios = sorted(counts, reverse = True)
 width_ratios.append(1)
-grid = gridspec.GridSpec(1, 4, width_ratios = width_ratios)
-#grid = gridspec.GridSpec(1, 4, width_ratios = [5, 3, 1, 1])
+grid = gridspec.GridSpec(1, n_clusters + 1, width_ratios = width_ratios)
 
 iteration = 0
 total = 0
@@ -135,6 +134,10 @@ plt.show(False)
 unique, counts = np.unique(labels_T, return_counts = True)
 labeldict_T = dict(zip(counts, unique))
 
+width_ratios = sorted(counts, reverse = True)
+width_ratios.append(1)
+grid = gridspec.GridSpec(n_clusters, n_clusters + 1, width_ratios = width_ratios)
+
 fig = plt.figure()
 fig.set_size_inches(6, len(data) / len(list(data)) * 6.0, forward = True)
 
@@ -163,6 +166,7 @@ for cluster in sorted(labeldict, reverse = True):
                 
         print(i, i_T, iteration)
         print(z_T)
+        #This is to make column-wise rather than row-wise subplots
         iteration_total = iteration_T * n_clusters + iteration
         
         ax[iteration_total] = fig.add_subplot(n_clusters, n_clusters, iteration_total + 1)
