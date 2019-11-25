@@ -57,7 +57,8 @@ adjust_text(texts)
 #Plot the centers of the k-means centroids and annotate them            
 plt.scatter(centroids[:,0], centroids[:,1])
 for i in range(0, n_clusters):
-    plt.annotate('%s' % i, centroids[i],  bbox=dict(boxstyle='circle', fc = 'none', ec = 'black', alpha = 0.8), size = 15, color = 'black')
+    plt.annotate('%s' % i, centroids[i],  bbox=dict(boxstyle='circle', fc = 'none', 
+                 ec = 'black', alpha = 0.8), size = 15, color = 'black')
 plt.legend(loc = 1, fancybox = True, framealpha = 1)
 
 plt.savefig('CA Principle Components.png', format = 'png', bbox_inches = 'tight')
@@ -152,30 +153,32 @@ fig.set_size_inches(6, len(data) / len(list(data)) * 6.0, forward = True)
 #Set up my set of axes
 ax = [[] for i in range(0, n_clusters * n_clusters)]
 
-iteration = 0
-iteration_total = 0
-for cluster in sorted(labeldict, reverse = True):
+iteration = 0 #Tracking subplots
+iteration_total = 0 #Tracking subplots
+for cluster in sorted(labeldict, reverse = True): #First do columns
     i = labeldict[cluster]
     z = [] #The cluster's data
-    for j in range(0, len(data.columns)):
+    for j in range(0, len(data.columns)): #Grabbing columns in the cluster
         if (labels[j] == i):
             z.append(j)
             
     iteration_T = 0
-    for cluster_T in sorted(labeldict, reverse = True):
+    for cluster_T in sorted(labeldict, reverse = True): #Then rows
         i_T = labeldict[cluster_T]
         z_T = [] #The cluster's transposed dimension data
-        for j_T in range(0, len(data.index)):
+        for j_T in range(0, len(data.index)): #Grabbing rows in the cluster
             if (labels_T[j_T] == i_T):
                 z_T.append(j_T)
 
+        #Turn these into a subplot
         ax[iteration_total] = fig.add_subplot(grid[iteration_T, iteration])
         ax[iteration_total].tick_params(axis = 'both', which = 'major', labelsize = 12)
         cax = ax[iteration_total].matshow(data.iloc[z_T[:], z[:]], aspect = "auto", vmin = data.min().min(), vmax = data.max().max())#aspect = "equal")
         if(iteration_T == 0):
             plt.xticks(range(len(z)), list(data[data.columns[z[:]]]), rotation = 30, ha = 'left')
         else:
-           plt.xticks([], [])
+            #I want a shared x-axis
+            plt.xticks([], [])
         if(iteration == 0):
             plt.yticks(range(len(data.index[z_T[:]])), data.index[z_T[:]], rotation = 30)
         else:
@@ -192,8 +195,6 @@ for cluster in sorted(labeldict, reverse = True):
         iteration_T += 1
         iteration_total += 1
     iteration += 1
-    
-        
 
 #Let's make our own legend as a subplot
 ax = fig.add_subplot(grid[:, n_clusters])
@@ -206,7 +207,6 @@ ax.yaxis.tick_right()
 plt.yticks(range(4), range(3, -1, -1))
 plt.tick_params(axis = 'x', which = 'both', bottom = False, top = False, labelbottom = False)
 plt.title('Legend', fontsize = 12)
-
 
 plt.savefig('Segmented Clusters Matrix.%s' % pic_type, format = 'png', bbox_inches = 'tight')
 plt.show(False)  
