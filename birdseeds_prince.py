@@ -32,24 +32,24 @@ plt.show(False)
 #Let's try to apply k-means algorithm to the CA data to auto-identify clusters
 n_clusters = 3
 kmeans = KMeans(n_clusters = n_clusters)
-kmeans = kmeans.fit(ca.column_principal_coordinates()[[0, 1]])
-labels = kmeans.predict(ca.column_principal_coordinates()[[0, 1]])
+kmeans = kmeans.fit(ca.column_coordinates(data)[[0, 1]])
+labels = kmeans.predict(ca.column_coordinates(data)[[0, 1]])
 centroids = kmeans.cluster_centers_
 
 #Make labels for the transposed variables so we can do full segmentation
-labels_T = kmeans.predict(ca.row_principal_coordinates()[[0, 1]])
+labels_T = kmeans.predict(ca.row_coordinates(data)[[0, 1]])
 
-ax = ca.plot_principal_coordinates(show_col_labels = False, show_row_labels = False)
+ax = ca.plot_coordinates(data, show_col_labels = False, show_row_labels = False)
 ax.get_figure().set_size_inches(9, 9, forward = True)
 #I need to construct my own set of text labels and use the adjustText library
 #to fix the overlapping text issue
-row_labels = ca.row_principal_coordinates
-full_texts = zip(row_labels()[0], row_labels()[1], ca.row_names_)
+row_labels = ca.row_coordinates(data)
+full_texts = zip(row_labels[0], row_labels[1], data.index)
 texts = []
 for x, y, name in full_texts:
     texts.append(plt.text(x, y, name, fontsize = 12))
-col_labels = ca.column_principal_coordinates
-full_texts = zip(col_labels()[0], col_labels()[1], ca.col_names_)
+col_labels = ca.column_coordinates(data)
+full_texts = zip(col_labels[0], col_labels[1], data.columns)
 for x, y, name in full_texts:
     texts.append(plt.text(x, y, name, fontsize = 12))
 adjust_text(texts)
